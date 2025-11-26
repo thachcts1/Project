@@ -11,17 +11,17 @@ struct Material {
     int status;
 };
 
-// Kiem tra ID duy nhat
+
 int isUniqueId(struct Material materials[], int matCount, char *id) {
     for (int i = 0; i < matCount; i++) {
         if (strcmp(materials[i].matId, id) == 0) {
-            return 0; // trung
-        }
+            return 0; 
+    
     }
-    return 1; // duy nhat
+    return 1;
 }
 
-// Nhap chuoi an toan
+
 void inputString(char *prompt, char *buffer, int size) {
     while (1) {
         printf("%s", prompt);
@@ -29,7 +29,7 @@ void inputString(char *prompt, char *buffer, int size) {
             printf("Loi nhap, vui long nhap lai.\n");
             continue;
         }
-        buffer[strcspn(buffer, "\n")] = '\0'; // bo \n
+        buffer[strcspn(buffer, "\n")] = '\0';
         if (strlen(buffer) == 0) {
             printf("Khong duoc rong, vui long nhap lai.\n");
             continue;
@@ -38,7 +38,6 @@ void inputString(char *prompt, char *buffer, int size) {
     }
 }
 
-// Nhap so an toan
 int inputInt(char *prompt) {
     char buffer[50];
     int value;
@@ -60,11 +59,11 @@ int inputInt(char *prompt) {
     }
 }
 
-// Ham kiem tra chuoi chi gom chu cai
+
 int isAlphaString(char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
         if (!((str[i] >= 'A' && str[i] <= 'Z') || (str[i] >= 'a' && str[i] <= 'z'))) {
-            return 0; // gap ky tu khong phai chu cai
+            return 0; 
         }
     }
     return 1;
