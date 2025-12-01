@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <math.h>
 
 #define MAX_MATERIAL 100
 #define MAX_TRANSACTION 200
