@@ -41,7 +41,7 @@ void inputString(char *prompt, char *buffer, int size) {
         printf("%s", prompt);
         if (fgets(buffer, size, stdin) == NULL) {
             printf("Loi nhap, vui long nhap lai.\n");
-            // clear error and continue
+        
             clearerr(stdin);
             continue;
         }
@@ -191,9 +191,9 @@ void updateMaterial(struct Material materials[], int matCount) {
     printf("Cap nhat thanh cong!\n");
 }
 
-/* =======================
-   Case 3
-   ======================= */
+
+  // Case 3
+   
 
 void manageStatus(struct Material materials[], int *matCount) {
     if (*matCount == 0) {
