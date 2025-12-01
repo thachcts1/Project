@@ -1,42 +1,51 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #define MAX_MATERIAL 100
+#define MAX_TRANSACTION 200
 
 struct Material {
     char matId[10];
     char name[50];
     char unit[10];
     int qty;
-    int status;
+    int status; 
 };
 
-struct Transaction{
-	char transID[20]; //ma giao dich
-	char matId[10]; //ma vat tu
-	char type[5]; // kieu xuat nhap ( in = nhap , out = xuat )
-	char date[15]; // thoi gian giao dich
+struct Transaction {
+    char transID[20];
+    char matId[10];
+    char type[5]; 
+    char date[15];
 };
 
-//cs1
-int isUniqueId(struct Material materials[], int matCount, char *id) {
-    for (int i = 0; i < matCount; i++) {
-        if (strcmp(materials[i].matId, id) == 0) return 0;
+
+
+// chuyen chuoi thanh chu thg
+void toLowerStr(char *dest, const char *src) {
+    int i = 0;
+    while (src[i]) {
+        if (src[i] >= 'A' && src[i] <= 'Z')
+            dest[i] = src[i] + ('a' - 'A');
+        else
+            dest[i] = src[i];
+        i++;
     }
-    return 1;
+    dest[i] = '\0';
 }
 
-// bo khoang trnag
+// add chuoi
 void inputString(char *prompt, char *buffer, int size) {
     while (1) {
         printf("%s", prompt);
-
         if (fgets(buffer, size, stdin) == NULL) {
             printf("Loi nhap, vui long nhap lai.\n");
+            // clear error and continue
+            clearerr(stdin);
             continue;
         }
-
-        buffer[strcspn(buffer, "\n")] = '\0';  // xoa enter
+        buffer[strcspn(buffer, "\n")] = '\0'; // remove newline
 
         int valid = 0;
         for (int i = 0; buffer[i] != '\0'; i++) {
@@ -45,46 +54,58 @@ void inputString(char *prompt, char *buffer, int size) {
                 break;
             }
         }
-
         if (!valid) {
             printf("Khong duoc de trong! Nhap lai.\n");
             continue;
         }
-
         break;
     }
 }
 
+//validate
 int inputInt(char *prompt) {
-    char buffer[50];
+    char buffer[128];
     int value;
-    char check;
+    char extra;
     while (1) {
         printf("%s", prompt);
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             printf("Loi nhap, vui long nhap lai.\n");
+            clearerr(stdin);
             continue;
         }
-        if (sscanf(buffer, "%d %c", &value, &check) != 1 || value < 0) {
-            printf("Chi duoc nhap so nguyen, nhap lai: ");
-            continue;
+        
+        if (sscanf(buffer, "%d %c", &value, &extra) == 1 && value >= 0) {
+            return value;
         }
-        return value;
+        printf("Chi duoc nhap so nguyen >= 0! Nhap lai.\n");
     }
 }
 
-int isAlphaString(char *str) {
+
+int isAlphaString(const char *str) {
+    if (str[0] == '\0') return 0;
     for (int i = 0; str[i] != '\0'; i++) {
-        if (!((str[i] >= 'A' && str[i] <= 'Z') ||
-              (str[i] >= 'a' && str[i] <= 'z'))) {
+        char c = str[i];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
             return 0;
-        }
     }
     return 1;
 }
 
-// delete
+
+
+
+int isUniqueId(struct Material materials[], int matCount, const char *id) {
+    for (int i = 0; i < matCount; i++) {
+        if (strcmp(materials[i].matId, id) == 0) return 0;
+    }
+    return 1;
+}
+
+//clear
 void deleteMaterial(struct Material materials[], int *matCount, int index) {
+    if (index < 0 || index >= *matCount) return;
     for (int i = index; i < (*matCount) - 1; i++) {
         materials[i] = materials[i + 1];
     }
@@ -92,7 +113,7 @@ void deleteMaterial(struct Material materials[], int *matCount, int index) {
     printf("Xoa vat tu thanh cong!\n");
 }
 
-// Thêm vat tu
+// case 1
 void addMaterial(struct Material materials[], int *matCount) {
     if (*matCount >= MAX_MATERIAL) {
         printf("Danh sach day, khong the them!\n");
@@ -113,7 +134,7 @@ void addMaterial(struct Material materials[], int *matCount) {
     inputString("Nhap ten vat tu: ", m.name, sizeof(m.name));
 
     while (1) {
-        inputString("Nhap don vi: ", m.unit, sizeof(m.unit));
+        inputString("Nhap don vi (kg, hop, cai,...): ", m.unit, sizeof(m.unit));
         if (!isAlphaString(m.unit)) {
             printf("Don vi chi gom chu cai, nhap lai!\n");
             continue;
@@ -130,7 +151,7 @@ void addMaterial(struct Material materials[], int *matCount) {
     printf("Them vat tu thanh cong!\n");
 }
 
-// Cap nhat vat tu
+//Case 2
 void updateMaterial(struct Material materials[], int matCount) {
     if (matCount == 0) {
         printf("Danh sach rong!\n");
@@ -170,7 +191,10 @@ void updateMaterial(struct Material materials[], int matCount) {
     printf("Cap nhat thanh cong!\n");
 }
 
-// Quan lý trang thái
+/* =======================
+   Case 3
+   ======================= */
+
 void manageStatus(struct Material materials[], int *matCount) {
     if (*matCount == 0) {
         printf("Danh sach rong!\n");
@@ -205,27 +229,41 @@ void manageStatus(struct Material materials[], int *matCount) {
     }
 
     if (opt == 1) {
-        materials[found].status = 0;
-        printf("Da khoa vat tu!\n");
+        char confirm[4];
+        while (1) {
+            inputString("Ban co chac muon khoa vat tu? (y/n): ", confirm, sizeof(confirm));
+            if (confirm[0] == 'y' || confirm[0] == 'Y') {
+                materials[found].status = 0;
+                printf("Da khoa vat tu!\n");
+                break;
+            } else if (confirm[0] == 'n' || confirm[0] == 'N') {
+                printf("Huy thao tac khoa!\n");
+                break;
+            } else {
+                printf("Vui long nhap y hoac n.\n");
+            }
+        }
     } else {
-        deleteMaterial(materials, matCount, found);
+        // confirm xóa
+        char confirm[4];
+        while (1) {
+            inputString("Ban co chac muon xoa vat tu? (y/n): ", confirm, sizeof(confirm));
+            if (confirm[0] == 'y' || confirm[0] == 'Y') {
+                deleteMaterial(materials, matCount, found);
+                break;
+            } else if (confirm[0] == 'n' || confirm[0] == 'N') {
+                printf("Huy thao tac xoa!\n");
+                break;
+            } else {
+                printf("Vui long nhap y hoac n.\n");
+            }
+        }
     }
 }
 
-// khong phan biet hoa hay thg.
-void toLowerStr(char *dest, const char *src) {
-    int i = 0;
-    while (src[i]) {
-        if (src[i] >= 'A' && src[i] <= 'Z')
-            dest[i] = src[i] + 32;
-        else
-            dest[i] = src[i];
-        i++;
-    }
-    dest[i] = '\0';
-}
 
-// Tra cuu vat tu
+//Kh piet hoa hay thg
+
 void findMaterial(struct Material materials[], int matCount) {
     if (matCount == 0) {
         printf("Danh sach rong!\n");
@@ -238,20 +276,22 @@ void findMaterial(struct Material materials[], int matCount) {
     } while (choice != 1 && choice != 2);
 
     char keyword[50];
+    char keywordLower[50];
+    char matLower[50];
     int resultIndexes[MAX_MATERIAL];
     int resultCount;
-    char keywordLower[50], matLower[50];
 
     do {
         inputString("Nhap tu khoa: ", keyword, sizeof(keyword));
         toLowerStr(keywordLower, keyword);
 
         resultCount = 0;
+
         for (int i = 0; i < matCount; i++) {
             if (choice == 1) toLowerStr(matLower, materials[i].matId);
             else toLowerStr(matLower, materials[i].name);
 
-            if (strncmp(matLower, keywordLower, strlen(keywordLower)) == 0) {
+            if (strstr(matLower, keywordLower) != NULL) {
                 resultIndexes[resultCount++] = i;
             }
         }
@@ -277,7 +317,8 @@ void findMaterial(struct Material materials[], int matCount) {
     }
 }
 
-// Hien thi danh sách vat tu
+//show phan trang
+
 void listMaterials(struct Material materials[], int matCount) {
     if (matCount == 0) {
         printf("Danh sach rong!\n");
@@ -288,10 +329,10 @@ void listMaterials(struct Material materials[], int matCount) {
     int totalPages = (matCount + pageSize - 1) / pageSize;
     if (totalPages > 6) totalPages = 6;
     int currentPage = 0;
+    char buffer[16];
 
     while (1) {
-        //system("cls"); // Windows only, có th? b? ho?c thay clear n?u dùng Linux
-        printf("===== DANH SACH VAT TU (Trang %d/%d) =====\n",
+        printf("\n===== DANH SACH VAT TU (Trang %d/%d) =====\n",
                currentPage + 1, totalPages);
 
         printf("|%-10s|%-20s|%-10s|%-10s|%-10s|\n",
@@ -314,9 +355,8 @@ void listMaterials(struct Material materials[], int matCount) {
         printf("-------------------------------------------------------------\n");
         printf("1. Trang truoc   2. Trang sau   0. Thoat: ");
 
-        char buffer[10];
-        int nav = 0;
-        fgets(buffer, sizeof(buffer), stdin);
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) break;
+        int nav = -1;
         sscanf(buffer, "%d", &nav);
 
         if (nav == 0) break;
@@ -325,21 +365,20 @@ void listMaterials(struct Material materials[], int matCount) {
     }
 }
 
-// So sánh tên
+
+
 int cmpByName(const void *a, const void *b) {
-    struct Material *m1 = (struct Material *)a;
-    struct Material *m2 = (struct Material *)b;
+    const struct Material *m1 = a;
+    const struct Material *m2 = b;
     return strcmp(m1->name, m2->name);
 }
 
-// So sánh so luong
 int cmpByQty(const void *a, const void *b) {
-    struct Material *m1 = (struct Material *)a;
-    struct Material *m2 = (struct Material *)b;
+    const struct Material *m1 = a;
+    const struct Material *m2 = b;
     return m1->qty - m2->qty;
 }
 
-// Sap xep vat tu
 void sortMaterials(struct Material materials[], int matCount) {
     if (matCount == 0) {
         printf("Danh sach vat tu rong!\n");
@@ -361,15 +400,18 @@ void sortMaterials(struct Material materials[], int matCount) {
     listMaterials(materials, matCount);
 }
 
-// Case 7
-void inOutTransaction(struct Material materials[], int matCount, struct Transaction trans[], int *transCount) {
+//case 7
+
+void inOutTransaction(struct Material materials[], int matCount,
+                      struct Transaction trans[], int *transCount) {
 
     if (matCount == 0) {
         printf("Danh sach vat tu rong!\n");
         return;
     }
 
-    char type[5];
+    char type[8];
+    char typeLower[8];
     char matId[10];
     int found = -1;
     int qty;
@@ -377,9 +419,7 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
     // Nhap loai giao dich (in/out)
     while (1) {
         inputString("Nhap loai giao dich (in = nhap, out = xuat): ", type, sizeof(type));
-        char typeLower[5];
         toLowerStr(typeLower, type);
-
         if (strcmp(typeLower, "in") == 0 || strcmp(typeLower, "out") == 0) {
             strcpy(type, typeLower);
             break;
@@ -390,7 +430,6 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
     // Nhap ma vat tu
     while (1) {
         inputString("Nhap ma vat tu: ", matId, sizeof(matId));
-
         found = -1;
         for (int i = 0; i < matCount; i++) {
             if (strcmp(materials[i].matId, matId) == 0) {
@@ -398,7 +437,6 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
                 break;
             }
         }
-
         if (found == -1) {
             printf("Ma vat tu khong ton tai trong danh sach! Nhap lai.\n");
         } else break;
@@ -406,13 +444,17 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
 
     // Nhap so luong
     qty = inputInt("Nhap so luong: ");
+    if (qty <= 0) {
+        printf("So luong phai > 0.\n");
+        return;
+    }
 
     if (strcmp(type, "in") == 0) {
         materials[found].qty += qty;
         sprintf(trans[*transCount].transID, "GD_%03d", *transCount + 1);
         strcpy(trans[*transCount].matId, matId);
         strcpy(trans[*transCount].type, "in");
-        strcpy(trans[*transCount].date, "N/A");
+        strcpy(trans[*transCount].date, "N/T/N");
         (*transCount)++;
         printf("Nhap vat tu %s thanh cong!\n", matId);
         return;
@@ -420,10 +462,9 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
 
     if (strcmp(type, "out") == 0) {
         if (qty > materials[found].qty) {
-            printf("So luong xuat vat tu %s vuot qua so luong hien co!\n", matId);
+            printf("So luong xuat vuot qua so luong hien co!\n");
             return;
         }
-
         materials[found].qty -= qty;
         sprintf(trans[*transCount].transID, "GD_%03d", *transCount + 1);
         strcpy(trans[*transCount].matId, matId);
@@ -434,8 +475,6 @@ void inOutTransaction(struct Material materials[], int matCount, struct Transact
         return;
     }
 }
-
-
 //case 8
 void historyTransaction(struct Transaction trans[], int transCount) {
     if (transCount == 0) {
@@ -467,33 +506,32 @@ void historyTransaction(struct Transaction trans[], int transCount) {
 }
 
 
-// Menu chính
 void showMenu() {
-    printf("+-----------------------------+\n");
-    printf("|         MENU CHINH          |\n");
-    printf("+-----------------------------+\n");
-    printf("| 1. Them vat tu moi          |\n");
-    printf("| 2. Cap nhat vat tu          |\n");
-    printf("| 3. Quan ly trang thai       |\n");
-    printf("| 4. Tra cuu vat tu           |\n");
-    printf("| 5. Danh sach vat tu         |\n");
-    printf("| 6. Sap xep danh sach        |\n");
-    printf("| 7. Giao dich (Nhap/Xuat)    |\n");
-    printf("| 8. Lich su giao dich        |\n");
-    printf("| 0. Thoat                    |\n");
-    printf("===============================\n");
+    printf("+--------------------------------+\n");
+    printf("|         MENU CHINH             |\n");
+    printf("+--------------------------------+\n");
+    printf("| 1. Them vat tu moi             |\n");
+    printf("| 2. Cap nhat vat tu             |\n");
+    printf("| 3. Quan ly trang thai(Khoa|Xoa)|\n");
+    printf("| 4. Tra cuu vat tu              |\n");
+    printf("| 5. Danh sach vat tu            |\n");
+    printf("| 6. Sap xep danh sach           |\n");
+    printf("| 7. Giao dich (Nhap/Xuat)       |\n");
+    printf("| 8. Lich su giao dich           |\n");
+    printf("| 0. Thoat                       |\n");
+    printf("==================================\n");
 }
 
-// Hàm main
+
+
 int main() {
     struct Material materials[MAX_MATERIAL];
     int matCount = 0;
 
-    struct Transaction transactions[100];
+    struct Transaction transactions[MAX_TRANSACTION];
     int transCount = 0;
 
     int choice;
-
     while (1) {
         showMenu();
         choice = inputInt("Chon chuc nang: ");
@@ -511,4 +549,6 @@ int main() {
             default: printf("Lua chon khong hop le!\n");
         }
     }
+
+    return 0;
 }
